@@ -23,7 +23,6 @@ DATASET_MAP = {
     "tokyo_mou_detention": "Tokyo MOU (억류 이력)"
 }
 
-# 💡 Streamlit Secrets(보안 설정)에서 API 키를 안전하게 불러옵니다.
 try:
     GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
     OPENSANCTIONS_KEY = st.secrets["OPENSANCTIONS_KEY"]
@@ -40,7 +39,8 @@ def get_vessel_name_from_gemini(imo_number):
         response = model.generate_content(prompt)
         return response.text.strip()
     except Exception as e:
-        return "알 수 없음 (AI 응답 오류)"
+        # 🚨 [수정됨] 실제 에러 메시지를 화면에 그대로 출력합니다!
+        return f"상세 에러 원인 확인: {str(e)}"
 
 def check_sanction(imo_number):
     url = "https://api.opensanctions.org/search/sanctions"
@@ -83,7 +83,7 @@ if imo_input:
                         vessel_name = get_vessel_name_from_gemini(imo_input)
                     
                     st.success(f"🟢 IMO {imo_input} : 현재 주요 글로벌 제재 명단에서 발견되지 않았습니다. (안전)")
-                    st.markdown(f"### 🚢 선박명: {vessel_name} (AI 검색 결과)")
+                    st.markdown(f"### 🚢 선박명: {vessel_name}")
                     
                     col1, col2, col3, col4 = st.columns(4)
                     with col1: st.markdown("**🇺🇸 미국 재무부(OFAC)**\n\n🟢 통과")
