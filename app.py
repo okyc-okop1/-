@@ -32,15 +32,22 @@ except Exception:
     OPENSANCTIONS_KEY = None
 
 def get_vessel_name_from_gemini(imo_number):
-    """제미나이 AI에게 IMO 번호를 주고 선박명을 물어보는 함수"""
+    """제미나이 AI에게 IMO 번호를 주고 선박명을 물어보는 함수 (2중 안전장치 적용)"""
+    prompt = f"IMO 번호 {imo_number}를 가진 선박의 이름이 무엇인가요? 부가적인 설명 없이 오직 대문자로 된 '선박명'만 정확히 한 줄로 대답해 주세요. 만약 정말 모른다면 '알 수 없음'이라고 대답해 주세요."
+    
     try:
-        model = genai.GenerativeModel('gemini-1.5-flash')
-        prompt = f"IMO 번호 {imo_number}를 가진 선박의 이름이 무엇인가요? 부가적인 설명 없이 오직 대문자로 된 '선박명'만 정확히 한 줄로 대답해 주세요. 만약 정말 모른다면 '알 수 없음'이라고 대답해 주세요."
+        # 1차 시도: 가장 널리 쓰이고 안정적인 gemini-pro 모델 사용
+        model = genai.GenerativeModel('gemini-pro')
         response = model.generate_content(prompt)
         return response.text.strip()
-    except Exception as e:
-        # 🚨 [수정됨] 실제 에러 메시지를 화면에 그대로 출력합니다!
-        return f"상세 에러 원인 확인: {str(e)}"
+    except Exception as e1:
+        try:
+            # 2차 시도: 1차 실패 시 최신 flash 모델로 재시도
+            model_backup = genai.GenerativeModel('gemini-1.5-flash-latest')
+            response_backup = model_backup.generate_content(prompt)
+            return response_backup.text.strip()
+        except Exception as e2:
+            return f"AI 연결 실패 (에러: {str(e2)})"
 
 def check_sanction(imo_number):
     url = "https://api.opensanctions.org/search/sanctions"
