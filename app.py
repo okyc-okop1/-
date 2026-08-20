@@ -32,6 +32,14 @@ def _entity_name(entity):
     return entity.get("properties", {}).get("name", ["이름 없음"])[0]
 
 
+def _opensanctions_url(entity):
+    """OpenSanctions 웹사이트에서 이 엔티티(선박)의 상세 프로필 페이지 URL.
+    entity id (예: NK-xxxxx)를 그대로 붙이면 된다. 이 페이지에는 어느 제재
+    리스트에 근거했는지, 원본 정부 발표 문서 링크 등 상세 정보가 나온다."""
+    entity_id = entity.get("id")
+    return f"https://www.opensanctions.org/entities/{entity_id}/" if entity_id else None
+
+
 def check_sanction(imo_number):
     """제재 여부 판정은 2단계로 이루어진다.
 
@@ -174,6 +182,12 @@ if imo_input:
                     datasets = entity.get("datasets", [])
                     agencies = [DATASET_MAP.get(ds, ds) for ds in datasets if ds not in ["sanctions", "default"]]
                     st.markdown(f"- **관련 데이터셋:** {', '.join(agencies) if agencies else '기타 기관'}")
+                    review_url = _opensanctions_url(entity)
+                    if review_url:
+                        st.link_button(
+                            "🔗 OpenSanctions 상세 페이지로 이동", review_url,
+                            key=f"review_link_{entity.get('id')}",
+                        )
                 st.markdown("---")
 
             elif status == "SANCTIONED":
@@ -188,10 +202,20 @@ if imo_input:
                     st.markdown("---")
                     st.markdown(f"- **전체 제재 이력 (기타 국가 포함):** {', '.join(agencies) if agencies else '기타 기관'}")
 
+                    vessel_url = _opensanctions_url(vessel)
+                    if vessel_url:
+                        st.link_button(
+                            "🔗 제재 상세 페이지 바로가기 (OpenSanctions)", vessel_url,
+                            key=f"sanctioned_link_{vessel.get('id')}",
+                        )
+                    st.markdown("")
+
                 if review:
                     st.markdown("#### 참고: 추가로 확인이 필요한 레코드")
                     for entity in review:
-                        st.markdown(f"- {_entity_name(entity)} ({', '.join(entity.get('datasets', [])) or '기타 기관'})")
+                        review_url = _opensanctions_url(entity)
+                        link_txt = f" — [상세보기]({review_url})" if review_url else ""
+                        st.markdown(f"- {_entity_name(entity)} ({', '.join(entity.get('datasets', [])) or '기타 기관'}){link_txt}")
 
             st.markdown(
                 f"- **🇺🇸 미국 재무부 교차 검증:** [OFAC Sanctions Search](https://sanctionssearch.ofac.treas.gov/) "
