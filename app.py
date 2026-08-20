@@ -32,25 +32,14 @@ except Exception:
     OPENSANCTIONS_KEY = None
 
 def get_vessel_name_from_gemini(imo_number):
-    """제미나이 AI에게 IMO 번호를 주고 선박명을 물어보는 함수 (자동 탐색 적용)"""
+    """제미나이 AI에게 IMO 번호를 주고 선박명을 물어보는 함수 (최신 3.6 버전 적용)"""
     prompt = f"IMO 번호 {imo_number}를 가진 선박의 이름이 무엇인가요? 부가적인 설명 없이 오직 대문자로 된 '선박명'만 정확히 한 줄로 대답해 주세요. 만약 정말 모른다면 '알 수 없음'이라고 대답해 주세요."
     
     try:
-        # 1. 현재 API 키로 접근 가능한 AI 모델 목록을 구글 서버에서 실시간으로 가져옵니다.
-        available_models = []
-        for m in genai.list_models():
-            if 'generateContent' in m.supported_generation_methods:
-                available_models.append(m.name)
-        
-        # 2. 사용 가능한 모델이 없다면 에러 반환
-        if not available_models:
-            return "사용 가능한 AI 모델 권한이 없습니다."
-            
-        # 3. 검색된 첫 번째 유효한 모델을 자동으로 선택하여 실행 (이름 충돌 원천 차단)
-        model = genai.GenerativeModel(available_models[0])
+        # 💡 에러 안내 메시지에 따라 구글의 최신 모델인 gemini-3.6-flash로 고정합니다.
+        model = genai.GenerativeModel('models/gemini-3.6-flash')
         response = model.generate_content(prompt)
         return response.text.strip()
-        
     except Exception as e:
         return f"AI 연결 실패 (에러: {str(e)})"
 
