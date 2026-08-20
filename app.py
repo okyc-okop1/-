@@ -115,16 +115,28 @@ def render_country_flags(datasets):
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.markdown("**🇺🇸 미국 재무부(OFAC)**")
-        st.error("🔴 제재 대상") if is_us else st.success("🟢 통과")
+        if is_us:
+            st.error("🔴 제재 대상")
+        else:
+            st.success("🟢 통과")
     with col2:
         st.markdown("**🇪🇺 유럽연합(EU)**")
-        st.error("🔴 제재 대상") if is_eu else st.success("🟢 통과")
+        if is_eu:
+            st.error("🔴 제재 대상")
+        else:
+            st.success("🟢 통과")
     with col3:
         st.markdown("**🇺🇳 국제연합(UN)**")
-        st.error("🔴 제재 대상") if is_un else st.success("🟢 통과")
+        if is_un:
+            st.error("🔴 제재 대상")
+        else:
+            st.success("🟢 통과")
     with col4:
         st.markdown("**🇰🇷 대한민국**")
-        st.error("🔴 제재 대상") if is_kr else st.success("🟢 통과")
+        if is_kr:
+            st.error("🔴 제재 대상")
+        else:
+            st.success("🟢 통과")
 
 
 st.subheader("1. 단건 실시간 검색")
