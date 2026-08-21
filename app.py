@@ -27,6 +27,11 @@ try:
 except Exception:
     OPENSANCTIONS_KEY = None
 
+try:
+    VESSELAPI_KEY = st.secrets["VESSELAPI_KEY"]
+except Exception:
+    VESSELAPI_KEY = None
+
 
 def _entity_name(entity):
     return entity.get("properties", {}).get("name", ["이름 없음"])[0]
@@ -38,6 +43,34 @@ def _opensanctions_url(entity):
     리스트에 근거했는지, 원본 정부 발표 문서 링크 등 상세 정보가 나온다."""
     entity_id = entity.get("id")
     return f"https://www.opensanctions.org/entities/{entity_id}/" if entity_id else None
+
+
+def get_vessel_name(imo_number):
+    """VesselAPI.com에서 IMO 번호로 실제 등록 선박명을 조회한다.
+    키는 반드시 st.secrets(Streamlit Secrets)로만 넣는다 — 코드 파일에 키를
+    직접 박아 넣으면 GitHub 등에 코드를 올릴 때 그대로 노출되기 때문이다."""
+    if not VESSELAPI_KEY:
+        return None
+
+    url = f"https://api.vesselapi.com/v1/vessel/{imo_number}"
+    params = {"filter.idType": "imo"}
+    headers = {"Authorization": f"Bearer {VESSELAPI_KEY}"}
+
+    try:
+        response = requests.get(url, params=params, headers=headers, timeout=10)
+        if response.status_code == 401:
+            return "VesselAPI 키 인증 실패"
+        elif response.status_code == 404:
+            return "선박 등록 정보 없음"
+        elif response.status_code != 200:
+            return f"선박명 조회 실패 (HTTP {response.status_code})"
+
+        data = response.json()
+        vessel = data.get("vessel") or {}
+        name = vessel.get("name")
+        return name if name else "알 수 없음"
+    except Exception as e:
+        return f"선박명 조회 실패 (에러: {str(e)})"
 
 
 def check_sanction(imo_number):
@@ -159,6 +192,14 @@ if imo_input:
         with st.spinner("글로벌 제재 명단을 샅샅이 조회 중입니다..."):
             status, confirmed, review = check_sanction(imo_input)
 
+        if status in ("CLEAN", "REVIEW"):
+            with st.spinner("선박명을 조회하고 있습니다..."):
+                vessel_name = get_vessel_name(imo_input)
+            if vessel_name:
+                st.markdown(f"### 🚢 선박명: {vessel_name}")
+            elif not VESSELAPI_KEY:
+                st.caption("ℹ️ VESSELAPI_KEY가 등록되지 않아 선박명 조회는 생략합니다.")
+
         if status == "API_KEY_ERROR":
             st.error("⚠️ 제재 DB API 키 인증에 실패했거나 한도를 초과했습니다.")
         elif status == "ERROR":
@@ -192,6 +233,12 @@ if imo_input:
 
             elif status == "SANCTIONED":
                 st.error("🔴 부적합 (제재 대상 선박 발견!)")
+
+                if VESSELAPI_KEY:
+                    with st.spinner("선박명을 교차 확인하고 있습니다..."):
+                        cross_check_name = get_vessel_name(imo_input)
+                    if cross_check_name:
+                        st.caption(f"ℹ️ VesselAPI 등록명(교차 확인용): {cross_check_name}")
 
                 for vessel in confirmed:
                     datasets = vessel.get("datasets", [])
